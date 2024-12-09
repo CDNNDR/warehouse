@@ -20,7 +20,7 @@ st.sidebar.image(logo_url, use_column_width=False, width=200)
 st.sidebar.title("Gestione Magazzino")
 
 menu = st.sidebar.radio("Navigazione", ["Visualizza Magazzino", "Carica a Magazzino", "Scarica da Magazzino",
-                                        "Visualizza Installazioni", "Aggiorna Prezzo Acquisto"])
+                                        "Visualizza Installazioni", "Aggiorna Prezzo Acquisto", "Aggiungi Nuovo Prodotto"])
 
 PRODUCTS = {
     "3800235261576": {"name": "Shelly 1 Mini Gen3", "purchase_price": 10.00},
@@ -208,6 +208,52 @@ def get_installations():
     results = cursor.fetchall()
     conn.close()
     return results
+
+/////////
+
+def add_new_product():
+    st.header("Aggiungi Nuovo Prodotto")
+    new_barcode = st.text_input("Inserisci il Codice a Barre:", value="")
+    new_name = st.text_input("Inserisci il Nome del Prodotto:")
+    new_price = st.number_input("Inserisci il Prezzo d'Acquisto (€):", min_value=0.0, step=0.01)
+    image_file = st.file_uploader("Carica un'immagine del prodotto (facoltativo)", type=["jpg", "png", "jpeg"])
+
+    if st.button("Aggiungi Prodotto"):
+        if not new_barcode or not new_name or new_price <= 0:
+            st.error("Inserisci tutti i dettagli richiesti e un prezzo valido.")
+            return
+        
+        if new_barcode in PRODUCTS:
+            st.error("Il codice a barre esiste già. Non è possibile aggiungere un prodotto duplicato.")
+            return
+
+        # Salva immagine, se fornita
+        image_path = None
+        if image_file:
+            image_path = f"images/{new_barcode}.png"
+            os.makedirs("images", exist_ok=True)
+            with open(image_path, "wb") as f:
+                f.write(image_file.getbuffer())
+        
+        # Aggiungi al dizionario
+        PRODUCTS[new_barcode] = {
+            "name": new_name,
+            "purchase_price": new_price,
+        }
+
+        # Aggiungi al database
+        conn = sqlite3.connect("warehouse.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO inventory (barcode, product_name, quantity, purchase_price, image_path)
+            VALUES (?, ?, ?, ?, ?)
+        """, (new_barcode, new_name, 0, new_price, image_path))
+        conn.commit()
+        conn.close()
+
+        st.success(f"Prodotto '{new_name}' aggiunto con successo!")
+
+//////
 
 
 initialize_database()
@@ -421,3 +467,7 @@ elif menu == "Aggiorna Prezzo Acquisto":
                 st.error("Inserire un prezzo valido!")
     else:
         st.warning("Nessun prodotto in magazzino.")
+
+
+elif menu == "Aggiungi Nuovo Prodotto":
+    add_new_product()

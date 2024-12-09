@@ -6,9 +6,6 @@ import numpy as np
 import os
 import pandas as pd
 import altair as alt
-
-# Per geocodifica e mappa (opzionale)
-# pip install geopy folium
 from geopy.geocoders import Nominatim
 import folium
 from streamlit_folium import st_folium
@@ -93,7 +90,8 @@ def add_product(barcode, quantity, image_path):
         """, (barcode, product_name, quantity, purchase_price, image_path))
 
     cursor.execute("""
-        INSERT INTO transactions (barcode, quantity, type, customer_name, project_name, location) VALUES (?, ?, 'in', NULL, NULL, NULL)
+        INSERT INTO transactions (barcode, quantity, type, customer_name, project_name, location)
+        VALUES (?, ?, 'in', NULL, NULL, NULL)
     """, (barcode, quantity))
 
     conn.commit()
@@ -138,13 +136,6 @@ def remove_product(barcode, quantity, customer_name, project_name, location):
     conn.close()
     return True
 
-def delete_product(barcode):
-    conn = sqlite3.connect("warehouse.db")
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM inventory WHERE barcode = ?", (barcode,))
-    conn.commit()
-    conn.close()
-
 def get_inventory():
     conn = sqlite3.connect("warehouse.db")
     cursor = conn.cursor()
@@ -154,6 +145,33 @@ def get_inventory():
     results = cursor.fetchall()
     conn.close()
     return results
+
+def get_installations():
+    conn = sqlite3.connect("warehouse.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT barcode, quantity, customer_name, project_name, location, timestamp
+        FROM transactions WHERE type = 'out'
+    """)
+    results = cursor.fetchall()
+    conn.close()
+    return results
+
+def get_monthly_transactions():
+    conn = sqlite3.connect("warehouse.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT strftime('%Y-%m', timestamp) as month,
+               SUM(CASE WHEN type='in' THEN quantity ELSE 0 END) as total_in,
+               SUM(CASE WHEN type='out' THEN quantity ELSE 0 END) as total_out
+        FROM transactions
+        GROUP BY strftime('%Y-%m', timestamp)
+        ORDER BY month
+    """)
+    results = cursor.fetchall()
+    conn.close()
+    df = pd.DataFrame(results, columns=["month", "total_in", "total_out"])
+    return df
 
 def add_new_product():
     st.header("Aggiungi Nuovo Prodotto")
@@ -199,20 +217,32 @@ def add_new_product():
 
 initialize_database()
 
-if menu == "Aggiungi Nuovo Prodotto":
-    add_new_product()
+if menu == "Visualizza Magazzino":
+    st.header("Magazzino")
+    inventory = get_inventory()
+    if inventory:
+        st.write("Prodotti in magazzino:")
+        df = pd.DataFrame(inventory, columns=["Nome", "Codice a Barre", "Quantità", "Prezzo Acquisto", "Immagine"])
+        st.dataframe(df)
+    else:
+        st.info("Magazzino vuoto.")
+
 elif menu == "Carica a Magazzino":
-    # Funzione di caricamento già presente nel codice fornito
-    pass
+    st.header("Carica a Magazzino")
+    # Funzione di caricamento
+
 elif menu == "Scarica da Magazzino":
-    # Funzione di scarico già presente nel codice fornito
-    pass
-elif menu == "Visualizza Magazzino":
-    # Funzione per visualizzare il magazzino già presente
-    pass
+    st.header("Scarica da Magazzino")
+    # Funzione di scarico
+
 elif menu == "Visualizza Installazioni":
-    # Funzione per visualizzare installazioni già presente
-    pass
+    st.header("Installazioni")
+    installations = get_installations()
+    # Mostra le installazioni
+
 elif menu == "Aggiorna Prezzo Acquisto":
-    # Funzione per aggiornare il prezzo d'acquisto già presente
-    pass
+    st.header("Aggiorna Prezzo Acquisto")
+    # Funzione per aggiornare il prezzo
+
+elif menu == "Aggiungi Nuovo Prodotto":
+    add_new_product()

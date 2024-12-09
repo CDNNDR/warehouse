@@ -31,6 +31,8 @@ PRODUCTS = {
     "3800235268100": {"name": "Shelly Pro 3EM", "purchase_price": 50.00},
     "3800235268117": {"name": "Shelly Pro 3EM-400", "purchase_price": 55.00},
     "3800235268148": {"name": "Shelly Pro EM-50", "purchase_price": 35.00},
+    "X001UISBQ9": {"name": "SONOFF TRV", "purchase_price": 37.00},
+  
 }
 
 

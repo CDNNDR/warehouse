@@ -209,7 +209,7 @@ def get_installations():
     conn.close()
     return results
 
-/////////
+#/////////
 
 def add_new_product():
     st.header("Aggiungi Nuovo Prodotto")
@@ -253,7 +253,7 @@ def add_new_product():
 
         st.success(f"Prodotto '{new_name}' aggiunto con successo!")
 
-//////
+#//////
 
 
 initialize_database()
